@@ -1,37 +1,48 @@
-#! /bin/sh
-wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" $XPENG_APK -O /app/xpeng.xapk
+#!/bin/sh
+set -eu
+
+if [ -z "${XPENG_APK:-}" ]; then
+    echo "Erreur : XPENG_APK n'est pas définie." >&2
+    exit 1
+fi
+
+wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$XPENG_APK" -O /app/xpeng.xapk || exit 1
 
 MAX_TRIES=3
 try=1
 MARKER="Listening for XPENG notifications; publishing to local MQTT."
 
-# Dossier temporaire pour communiquer avec la boucle de lecture du log
 STATE_DIR=$(mktemp -d)
+FIFO="$STATE_DIR/log_fifo"
+mkfifo "$FIFO"
 trap 'rm -rf "$STATE_DIR"' EXIT
 
 while [ "$try" -le "$MAX_TRIES" ]; do
-    rm -f "$STATE_DIR/listening" "$STATE_DIR/code"
+    rm -f "$STATE_DIR/listening"
 
-    {
-        java -Djava.awt.headless=true -jar /app/XPengDirect.jar --cli 2>&1
-        echo $? > "$STATE_DIR/code"
-    } | while IFS= read -r line; do
-        # Affichage du log en direct sur la sortie standard
+    # Traitement du log en arrière-plan via le FIFO
+    while IFS= read -r line; do
         printf '%s\n' "$line"
         case "$line" in
             *"$MARKER"*) : > "$STATE_DIR/listening" ;;
         esac
-    done
+    done < "$FIFO" &
+    LOGGER_PID=$!
 
-    code=$(cat "$STATE_DIR/code")
+    # Execution de Java redirigée vers le FIFO
+    set +e
+    java -Djava.awt.headless=true -jar /app/XPengDirect.jar --cli > "$FIFO" 2>&1
+    code=$?
+    set -e
 
-    # Tout code différent de 1 (succès ou autre erreur) : on termine
+    # Attente de la fin de l'affichage des logs
+    wait "$LOGGER_PID" 2>/dev/null || true
+
     if [ "$code" -ne 1 ]; then
         exit "$code"
     fi
 
     if [ -f "$STATE_DIR/listening" ]; then
-        # Le programme a démarré correctement avant de planter : on repart de zéro
         echo "Code 1 après démarrage normal, réinitialisation du compteur" >&2
         try=1
     else
@@ -40,5 +51,4 @@ while [ "$try" -le "$MAX_TRIES" ]; do
     fi
 done
 
-# 3 échecs consécutifs avec le code 1 sans avoir atteint l'état "Listening"
 exit 1
