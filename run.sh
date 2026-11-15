@@ -6,7 +6,11 @@ if [ -z "${XPENG_APK:-}" ]; then
     exit 1
 fi
 
-wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$XPENG_APK" -O /app/xpeng.xapk || exit 1
+if [ -f "/data/xpeng.xapk" ]; then
+    echo "apk already exists. To replace delet and restart container"
+else
+    wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$XPENG_APK" -O /data/xpeng.xapk || exit 1
+fi
 
 MAX_TRIES=3
 try=1
