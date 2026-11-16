@@ -20,5 +20,4 @@ Le token de session et la configuration sont stockés dans xpeng-storage qui doi
 Une fois la configuration faite, il faut relancer le container en mode serveur.
 
     docker run -d --volume xpeng-storage:/data sbonnell/xpeng-direct:latest
-    
 

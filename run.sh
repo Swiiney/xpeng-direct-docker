@@ -5,11 +5,21 @@ if [ -z "${XPENG_APK:-}" ]; then
     echo "Erreur : XPENG_APK n'est pas définie." >&2
     exit 1
 fi
-
-if [ -f "/data/xpeng.xapk" ]; then
-    echo "apk already exists. To replace delet and restart container"
+if [ -z "${XPENG_APK_VERSION:-}" ]; then
+    echo "Erreur : XPENG_APK_VERSION n'est pas définie." >&2
+    exit 1
+elif [ "${XPENG_APK_VERSION:-}" = "latest" ]; then
+    XAPK_code="version=latest"
 else
-    wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$XPENG_APK" -O /data/xpeng.xapk || exit 1
+    XAPK_code="versionCode=$XPENG_APK_VERSION"
+fi
+
+if [ ! -f "/data/xpeng.xapk" ] || [ "$XPENG_APK_FORCE_DOWNLOAD" = "true" ]; then
+    echo "Downloading $XPENG_APK?$XAPK_code"
+    wget --user-agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64)" "$XPENG_APK?$XAPK_code" -O /data/xpeng.xapk || exit 1
+else
+    echo "apk already exists. To replace delete it and restart container"
+    echo "$XPENG_APK?$XAPK_code"
 fi
 
 MAX_TRIES=3

@@ -2,7 +2,10 @@ FROM eclipse-temurin:25-jre-ubi10-minimal
 
 #ENV XPENG_APK=https://d.apkpure.net/b/XAPK/com.xiaopeng.globalcarinfo?version=latest
 # version 3.15.1
-ENV XPENG_APK=https://d.apkpure.com/b/XAPK/com.xiaopeng.globalcarinfo?versionCode=8847
+#ENV XPENG_APK=https://d.apkpure.com/b/XAPK/com.xiaopeng.globalcarinfo?versionCode=8847
+ENV XPENG_APK_FORCE_DOWNLOAD=false
+ENV XPENG_APK=https://d.apkpure.com/b/XAPK/com.xiaopeng.globalcarinfo
+ENV XPENG_APK_VERSION=8847
 ENV XPENG_JAVA_STATE_DIR=/data
 
 RUN mkdir -p /app /data
